@@ -218,7 +218,77 @@ function ExplanationCard({ explanation, compact = false }: { explanation: Explai
   )
 }
 
-function AnswerCard({ answer }: { answer: QuestionResponse }) {
+function AnswerCard({ answer, compact = false }: { answer: QuestionResponse; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="size-5 text-accent" />
+          <h3 className="font-semibold">Answer</h3>
+        </div>
+        <p className="text-sm text-muted-foreground italic">{`"${answer.question}"`}</p>
+
+        {/* Answer */}
+        <div className="rounded-lg bg-muted/50 p-4">
+          <p className="text-sm leading-relaxed whitespace-pre-line">{answer.answer}</p>
+        </div>
+
+        {/* Confidence */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Confidence</span>
+            <span className="font-medium">{Math.round(answer.confidence * 100)}%</span>
+          </div>
+          <Progress value={answer.confidence * 100} className="h-1" />
+        </div>
+
+        {/* Suggested Actions */}
+        {answer.suggested_actions.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Suggested Actions</h4>
+            <ul className="space-y-1">
+              {answer.suggested_actions.map((action, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle2 className="size-4 text-success" />
+                  {action}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Sources */}
+        {answer.sources_used.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Sources</h4>
+            <div className="flex flex-wrap gap-2">
+              {answer.sources_used.map((source) => (
+                <div key={`${source.source_type}-${source.source_id}`} className="flex items-center gap-1">
+                  <SourceBadge sourceType={source.source_type} />
+                  <span className="text-xs">{source.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Limitations */}
+        {answer.limitations && (
+          <div className="flex items-start gap-2 rounded-lg bg-warning/10 p-3 text-warning">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <p className="text-xs">{answer.limitations}</p>
+          </div>
+        )}
+
+        {/* Safety Note */}
+        <div className="flex items-center gap-2 text-xs text-success">
+          <Shield className="size-4" />
+          {answer.safety_note}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -431,7 +501,7 @@ export function AnswerDisplay({ explanation, answer, guidedSteps, userRole, comp
   return (
     <div className="space-y-6">
       {explanation && <ExplanationCard explanation={explanation} compact={compact} />}
-      {answer && <AnswerCard answer={answer} />}
+      {answer && <AnswerCard answer={answer} compact={compact} />}
       {guidedSteps && <GuidedStepsCard steps={guidedSteps} />}
     </div>
   )

@@ -110,7 +110,7 @@ export function SalesforceBuddyPanel({
               Get answers based on SOPs and approved knowledge
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <QuestionInput
               objectName={selectedObject}
               recordId={selectedRecordId}
@@ -119,6 +119,19 @@ export function SalesforceBuddyPanel({
               isLoading={isLoading}
               setIsLoading={setIsLoading}
             />
+
+            {/* Answer appears directly below the question input */}
+            {answer && (
+              <div className="pt-4 border-t">
+                <AnswerDisplay
+                  explanation={null}
+                  answer={answer}
+                  guidedSteps={null}
+                  userRole={userRole}
+                  compact
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -142,12 +155,12 @@ export function SalesforceBuddyPanel({
         </Card>
       </div>
 
-      {/* Right Column - Q&A and Guided Steps Results */}
-      {(answer || guidedSteps) && (
+      {/* Right Column - Guided Steps Results */}
+      {guidedSteps && (
         <div className="lg:col-span-2">
           <AnswerDisplay
             explanation={null}
-            answer={answer}
+            answer={null}
             guidedSteps={guidedSteps}
             userRole={userRole}
           />

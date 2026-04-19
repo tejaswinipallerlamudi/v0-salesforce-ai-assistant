@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
-import { apiClient } from '@/lib/api-client'
 import type { UserRole, QuestionResponse } from '@/types'
 import { Send } from 'lucide-react'
 
@@ -207,28 +206,23 @@ export function QuestionInput({
 
     setIsLoading(true)
     try {
-      // First try the backend API
-      const answer = await apiClient.askQuestion(question, objectName, recordId, userRole)
-      onAnswer(answer)
-    } catch {
-      // If backend fails, use the local Next.js API route with OpenAI
-      try {
-        const response = await fetch('/api/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question, objectName, recordId, userRole }),
-        })
-        
-        if (!response.ok) {
-          throw new Error('API request failed')
-        }
-        
-        const answer = await response.json()
-        onAnswer(answer)
-      } catch {
-        // Final fallback to mock data if OpenAI also fails
-        onAnswer(getMockAnswer(question))
+      // Use the local Next.js API route with OpenAI directly
+      const response = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, objectName, recordId, userRole }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('API request failed')
       }
+      
+      const answer = await response.json()
+      onAnswer(answer)
+    } catch (error) {
+      console.error('[v0] Failed to get AI answer:', error)
+      // Fallback to mock data only if OpenAI fails
+      onAnswer(getMockAnswer(question))
     } finally {
       setIsLoading(false)
     }

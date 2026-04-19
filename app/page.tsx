@@ -1,0 +1,71 @@
+'use client'
+
+import { useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Header } from '@/components/header'
+import { SalesforceBuddyPanel } from '@/components/salesforce-buddy/salesforce-buddy-panel'
+import { ProjectIntelligencePanel } from '@/components/project-intelligence/project-intelligence-panel'
+import { AdminPanel } from '@/components/admin/admin-panel'
+import type { UserRole } from '@/types'
+import { MessageCircle, Brain, Settings } from 'lucide-react'
+
+export default function DashboardPage() {
+  const [userRole, setUserRole] = useState<UserRole>('intern')
+  const [selectedObject, setSelectedObject] = useState<string>('')
+  const [selectedRecordId, setSelectedRecordId] = useState<string>('')
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header userRole={userRole} onRoleChange={setUserRole} />
+      
+      <main className="flex-1 p-6">
+        <div className="mx-auto max-w-7xl">
+          <Tabs defaultValue="buddy" className="space-y-6">
+            <TabsList className="grid w-full max-w-xl grid-cols-3">
+              <TabsTrigger value="buddy" className="gap-2">
+                <MessageCircle className="size-4" />
+                Salesforce Buddy
+              </TabsTrigger>
+              <TabsTrigger value="intelligence" className="gap-2">
+                <Brain className="size-4" />
+                Project Intelligence
+              </TabsTrigger>
+              {userRole === 'admin' && (
+                <TabsTrigger value="admin" className="gap-2">
+                  <Settings className="size-4" />
+                  Admin
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="buddy">
+              <SalesforceBuddyPanel
+                userRole={userRole}
+                selectedObject={selectedObject}
+                selectedRecordId={selectedRecordId}
+                onObjectChange={setSelectedObject}
+                onRecordChange={setSelectedRecordId}
+              />
+            </TabsContent>
+
+            <TabsContent value="intelligence">
+              <ProjectIntelligencePanel
+                userRole={userRole}
+                selectedObject={selectedObject}
+                selectedRecordId={selectedRecordId}
+                onObjectChange={setSelectedObject}
+                onRecordChange={setSelectedRecordId}
+              />
+            </TabsContent>
+
+            {userRole === 'admin' && (
+              <TabsContent value="admin">
+                <AdminPanel />
+              </TabsContent>
+            )}
+          </Tabs>
+        </div>
+      </main>
+    </div>
+  )
+}

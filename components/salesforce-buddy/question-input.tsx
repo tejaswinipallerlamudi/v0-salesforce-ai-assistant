@@ -206,23 +206,35 @@ export function QuestionInput({
 
     setIsLoading(true)
     try {
-      // Use the local Next.js API route with OpenAI directly
-      const response = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, objectName, recordId, userRole }),
-      })
+      // Step 1: First check the local knowledge base (SOPs, KT notes)
+      const knowledgeBaseAnswer = getMockAnswer(question)
       
-      if (!response.ok) {
-        throw new Error('API request failed')
+      // Step 2: If we found a specific answer in the knowledge base (high confidence, no limitations)
+      // then use it. Otherwise, fall back to OpenAI for a comprehensive answer.
+      if (knowledgeBaseAnswer.confidence >= 0.9 && !knowledgeBaseAnswer.limitations) {
+        // Found a relevant SOP/document - use the knowledge base answer
+        onAnswer(knowledgeBaseAnswer)
+      } else {
+        // No specific document found - use OpenAI to generate an answer
+        try {
+          const response = await fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, objectName, recordId, userRole }),
+          })
+          
+          if (!response.ok) {
+            throw new Error('API request failed')
+          }
+          
+          const aiAnswer = await response.json()
+          onAnswer(aiAnswer)
+        } catch (error) {
+          console.error('[v0] Failed to get AI answer:', error)
+          // If OpenAI also fails, show the knowledge base answer as fallback
+          onAnswer(knowledgeBaseAnswer)
+        }
       }
-      
-      const answer = await response.json()
-      onAnswer(answer)
-    } catch (error) {
-      console.error('[v0] Failed to get AI answer:', error)
-      // Fallback to mock data only if OpenAI fails
-      onAnswer(getMockAnswer(question))
     } finally {
       setIsLoading(false)
     }

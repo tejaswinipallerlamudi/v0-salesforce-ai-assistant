@@ -51,16 +51,33 @@ export function ExplainPageButton({
   const handleExplain = async () => {
     setIsLoading(true)
     try {
+      // First try the backend API
       const explanation = await apiClient.explainPage(objectName, recordId, userRole)
       onExplanation(explanation)
     } catch {
-      // Use mock data for demo
-      onExplanation({
-        ...MOCK_EXPLANATION,
-        object_name: objectName,
-        object_label: objectName,
-        record_id: recordId,
-      })
+      // If backend fails, use the local Next.js API route with OpenAI
+      try {
+        const response = await fetch('/api/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ objectName, recordId, userRole }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('API request failed')
+        }
+        
+        const explanation = await response.json()
+        onExplanation(explanation)
+      } catch {
+        // Final fallback to mock data if OpenAI also fails
+        onExplanation({
+          ...MOCK_EXPLANATION,
+          object_name: objectName,
+          object_label: objectName,
+          record_id: recordId,
+        })
+      }
     } finally {
       setIsLoading(false)
     }

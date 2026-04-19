@@ -207,11 +207,28 @@ export function QuestionInput({
 
     setIsLoading(true)
     try {
+      // First try the backend API
       const answer = await apiClient.askQuestion(question, objectName, recordId, userRole)
       onAnswer(answer)
     } catch {
-      // Use mock data for demo
-      onAnswer(getMockAnswer(question))
+      // If backend fails, use the local Next.js API route with OpenAI
+      try {
+        const response = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, objectName, recordId, userRole }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('API request failed')
+        }
+        
+        const answer = await response.json()
+        onAnswer(answer)
+      } catch {
+        // Final fallback to mock data if OpenAI also fails
+        onAnswer(getMockAnswer(question))
+      }
     } finally {
       setIsLoading(false)
     }

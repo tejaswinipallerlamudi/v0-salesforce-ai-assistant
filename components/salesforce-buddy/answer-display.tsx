@@ -16,6 +16,7 @@ interface AnswerDisplayProps {
   answer: QuestionResponse | null
   guidedSteps: GuidedStepsResponse | null
   userRole: UserRole
+  compact?: boolean
 }
 
 function SourceBadge({ sourceType }: { sourceType: string }) {
@@ -29,7 +30,97 @@ function SourceBadge({ sourceType }: { sourceType: string }) {
   return <Badge variant="outline" className={c.className}>{c.label}</Badge>
 }
 
-function ExplanationCard({ explanation }: { explanation: ExplainPageResponse }) {
+function ExplanationCard({ explanation, compact = false }: { explanation: ExplainPageResponse; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="size-5 text-accent" />
+          <h3 className="font-semibold">Page Explanation: {explanation.object_label}</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">{explanation.purpose}</p>
+        
+        {/* Summary */}
+        <div className="rounded-lg bg-muted/50 p-4">
+          <p className="text-sm leading-relaxed whitespace-pre-line">{explanation.summary}</p>
+        </div>
+
+        {/* Field Explanations */}
+        {explanation.field_explanations.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="size-4" />
+              Field Guide
+            </h4>
+            <Accordion type="single" collapsible className="w-full">
+              {explanation.field_explanations.map((field) => (
+                <AccordionItem key={field.field_name} value={field.field_name}>
+                  <AccordionTrigger className="text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{field.field_label}</span>
+                      <Badge variant="outline" className="text-xs">{field.field_type}</Badge>
+                      {field.current_value && (
+                        <span className="text-muted-foreground">= {field.current_value}</span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-sm text-muted-foreground">{field.explanation}</p>
+                    {field.tips && (
+                      <p className="mt-2 text-sm text-accent">Tip: {field.tips}</p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        )}
+
+        {/* Related Processes */}
+        {explanation.related_processes.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <FileText className="size-4" />
+              Related Processes
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {explanation.related_processes.map((process) => (
+                <Badge key={process} variant="secondary">{process}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sources */}
+        {explanation.sources_used.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="size-4" />
+              Sources Used
+            </h4>
+            <div className="space-y-2">
+              {explanation.sources_used.map((source) => (
+                <div key={`${source.source_type}-${source.source_id}`} className="flex items-start gap-2 rounded-lg bg-muted/30 p-2">
+                  <SourceBadge sourceType={source.source_type} />
+                  <span className="text-xs">{source.title}</span>
+                  <Badge variant="outline" className="shrink-0 text-xs ml-auto">
+                    {Math.round(source.relevance_score * 100)}%
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Safety Note */}
+        <div className="flex items-center gap-2 text-xs text-success">
+          <Shield className="size-4" />
+          {explanation.safety_note}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -316,7 +407,7 @@ function GuidedStepsCard({ steps }: { steps: GuidedStepsResponse }) {
   )
 }
 
-export function AnswerDisplay({ explanation, answer, guidedSteps, userRole }: AnswerDisplayProps) {
+export function AnswerDisplay({ explanation, answer, guidedSteps, userRole, compact = false }: AnswerDisplayProps) {
   const hasContent = explanation || answer || guidedSteps
 
   if (!hasContent) {
@@ -339,7 +430,7 @@ export function AnswerDisplay({ explanation, answer, guidedSteps, userRole }: An
 
   return (
     <div className="space-y-6">
-      {explanation && <ExplanationCard explanation={explanation} />}
+      {explanation && <ExplanationCard explanation={explanation} compact={compact} />}
       {answer && <AnswerCard answer={answer} />}
       {guidedSteps && <GuidedStepsCard steps={guidedSteps} />}
     </div>

@@ -87,6 +87,19 @@ export function SalesforceBuddyPanel({
                 {safetyInfo && <SafetyBadge safetyInfo={safetyInfo} />}
               </div>
             )}
+
+            {/* Explanation appears directly below the button */}
+            {explanation && (
+              <div className="mt-4 pt-4 border-t">
+                <AnswerDisplay
+                  explanation={explanation}
+                  answer={null}
+                  guidedSteps={null}
+                  userRole={userRole}
+                  compact
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -129,15 +142,17 @@ export function SalesforceBuddyPanel({
         </Card>
       </div>
 
-      {/* Right Column - Results */}
-      <div className="lg:col-span-2">
-        <AnswerDisplay
-          explanation={explanation}
-          answer={answer}
-          guidedSteps={guidedSteps}
-          userRole={userRole}
-        />
-      </div>
+      {/* Right Column - Q&A and Guided Steps Results */}
+      {(answer || guidedSteps) && (
+        <div className="lg:col-span-2">
+          <AnswerDisplay
+            explanation={null}
+            answer={answer}
+            guidedSteps={guidedSteps}
+            userRole={userRole}
+          />
+        </div>
+      )}
     </div>
   )
 }

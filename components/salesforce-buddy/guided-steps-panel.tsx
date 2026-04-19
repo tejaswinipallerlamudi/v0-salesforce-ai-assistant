@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { apiClient } from '@/lib/api-client'
 import type { UserRole, GuidedStepsResponse } from '@/types'
 import { ListChecks, ArrowUpCircle, XCircle, RefreshCw } from 'lucide-react'
 
@@ -85,11 +84,34 @@ export function GuidedStepsPanel({
   const handleGetSteps = async (workflowType: string) => {
     setIsLoading(true)
     try {
-      const steps = await apiClient.getGuidedSteps(workflowType, objectName, recordId, userRole)
-      onSteps(steps)
-    } catch {
-      // Use mock data for demo
-      onSteps(MOCK_STEPS[workflowType] || MOCK_STEPS.escalation)
+      // Step 1: First check the local knowledge base (SOPs) for this workflow
+      const knowledgeBaseSteps = MOCK_STEPS[workflowType]
+      
+      // Step 2: If we have documented steps in the knowledge base, use them
+      if (knowledgeBaseSteps && knowledgeBaseSteps.source_sop) {
+        // Found SOP-documented workflow - use the knowledge base steps
+        onSteps(knowledgeBaseSteps)
+      } else {
+        // No documented workflow found - use OpenAI to generate steps
+        try {
+          const response = await fetch('/api/guided-steps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workflowType, objectName, recordId, userRole }),
+          })
+          
+          if (!response.ok) {
+            throw new Error('API request failed')
+          }
+          
+          const aiSteps = await response.json()
+          onSteps(aiSteps)
+        } catch (error) {
+          console.error('[v0] Failed to get AI-generated steps:', error)
+          // If OpenAI also fails, return a generic workflow
+          onSteps(MOCK_STEPS.escalation)
+        }
+      }
     } finally {
       setIsLoading(false)
     }

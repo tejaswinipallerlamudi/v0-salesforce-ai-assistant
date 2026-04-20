@@ -4,10 +4,49 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { apiClient } from '@/lib/api-client'
-import type { AuditLogEntry } from '@/types'
+import { useAuth, type UserWithPassword } from '@/contexts/auth-context'
+import type { AuditLogEntry, UserRole } from '@/types'
 import {
   Shield,
   Activity,
@@ -18,6 +57,13 @@ import {
   FileText,
   User,
   RefreshCw,
+  Users,
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  EyeOff,
+  UserCog,
 } from 'lucide-react'
 
 interface AuditStats {
@@ -104,6 +150,12 @@ const MOCK_LOGS: AuditLogEntry[] = [
     sources_consulted: ['Field Guide: Account Object'],
   },
 ]
+
+const roleConfig: Record<UserRole, { label: string; badgeClass: string }> = {
+  intern: { label: 'Intern', badgeClass: 'bg-blue-100 text-blue-700' },
+  lead: { label: 'Team Lead', badgeClass: 'bg-green-100 text-green-700' },
+  admin: { label: 'Admin', badgeClass: 'bg-purple-100 text-purple-700' },
+}
 
 function StatCard({
   title,
@@ -214,7 +266,455 @@ function LogEntry({ log }: { log: AuditLogEntry }) {
   )
 }
 
-export function AdminPanel() {
+function UserManagementTab() {
+  const { users, addUser, updateUser, deleteUser, user: currentUser } = useAuth()
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserWithPassword | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'intern' as UserRole,
+    department: '',
+  })
+  const [showPassword, setShowPassword] = useState(false)
+
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      password: '',
+      name: '',
+      role: 'intern',
+      department: '',
+    })
+    setShowPassword(false)
+    setError('')
+  }
+
+  const handleOpenAddDialog = () => {
+    resetForm()
+    setIsAddDialogOpen(true)
+  }
+
+  const handleOpenEditDialog = (user: UserWithPassword) => {
+    setEditingUser(user)
+    setFormData({
+      username: user.username,
+      password: user.password,
+      name: user.name,
+      role: user.role,
+      department: user.department || '',
+    })
+    setShowPassword(false)
+    setError('')
+  }
+
+  const handleCloseDialogs = () => {
+    setIsAddDialogOpen(false)
+    setEditingUser(null)
+    resetForm()
+  }
+
+  const handleSubmitAdd = async () => {
+    if (!formData.username.trim() || !formData.password.trim() || !formData.name.trim()) {
+      setError('Username, password, and name are required')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    const result = await addUser({
+      username: formData.username.trim(),
+      password: formData.password,
+      name: formData.name.trim(),
+      role: formData.role,
+      department: formData.department.trim() || undefined,
+    })
+
+    if (result.success) {
+      handleCloseDialogs()
+    } else {
+      setError(result.error || 'Failed to add user')
+    }
+
+    setIsSubmitting(false)
+  }
+
+  const handleSubmitEdit = async () => {
+    if (!editingUser) return
+    if (!formData.username.trim() || !formData.password.trim() || !formData.name.trim()) {
+      setError('Username, password, and name are required')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    const result = await updateUser(editingUser.id, {
+      username: formData.username.trim(),
+      password: formData.password,
+      name: formData.name.trim(),
+      role: formData.role,
+      department: formData.department.trim() || undefined,
+    })
+
+    if (result.success) {
+      handleCloseDialogs()
+    } else {
+      setError(result.error || 'Failed to update user')
+    }
+
+    setIsSubmitting(false)
+  }
+
+  const handleDelete = async (userId: string) => {
+    const result = await deleteUser(userId)
+    if (!result.success) {
+      alert(result.error || 'Failed to delete user')
+    }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">User Management</h3>
+          <p className="text-sm text-muted-foreground">
+            Add, edit, or remove users and manage their roles
+          </p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleOpenAddDialog} className="gap-2">
+              <Plus className="size-4" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>
+                Create a new user account with specified role and permissions.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
+                  <AlertCircle className="size-4" />
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Username</label>
+                <Input
+                  placeholder="Enter username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Full Name</label>
+                <Input
+                  placeholder="Enter full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(v) => setFormData({ ...formData, role: v as UserRole })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="intern">Intern - Basic access</SelectItem>
+                    <SelectItem value="lead">Team Lead - Project Intelligence access</SelectItem>
+                    <SelectItem value="admin">Admin - Full system access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Department (Optional)</label>
+                <Input
+                  placeholder="Enter department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialogs}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitAdd} disabled={isSubmitting}>
+                {isSubmitting ? <Spinner className="size-4 mr-2" /> : null}
+                Add User
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Users Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-muted">
+                        <User className="size-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{user.name}</p>
+                        {user.id === currentUser?.id && (
+                          <Badge variant="outline" className="text-xs">You</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{user.username}</TableCell>
+                  <TableCell>
+                    <Badge className={roleConfig[user.role].badgeClass}>
+                      {roleConfig[user.role].label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.department || '-'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(user.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Dialog open={editingUser?.id === user.id} onOpenChange={(open) => !open && handleCloseDialogs()}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEditDialog(user)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit User</DialogTitle>
+                            <DialogDescription>
+                              Update user account details and permissions.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            {error && (
+                              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
+                                <AlertCircle className="size-4" />
+                                {error}
+                              </div>
+                            )}
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Username</label>
+                              <Input
+                                placeholder="Enter username"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Password</label>
+                              <div className="relative">
+                                <Input
+                                  type={showPassword ? 'text' : 'password'}
+                                  placeholder="Enter password"
+                                  value={formData.password}
+                                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                  className="pr-10"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Full Name</label>
+                              <Input
+                                placeholder="Enter full name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Role</label>
+                              <Select
+                                value={formData.role}
+                                onValueChange={(v) => setFormData({ ...formData, role: v as UserRole })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="intern">Intern - Basic access</SelectItem>
+                                  <SelectItem value="lead">Team Lead - Project Intelligence access</SelectItem>
+                                  <SelectItem value="admin">Admin - Full system access</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Department (Optional)</label>
+                              <Input
+                                placeholder="Enter department"
+                                value={formData.department}
+                                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={handleCloseDialogs}>
+                              Cancel
+                            </Button>
+                            <Button onClick={handleSubmitEdit} disabled={isSubmitting}>
+                              {isSubmitting ? <Spinner className="size-4 mr-2" /> : null}
+                              Save Changes
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            disabled={user.id === currentUser?.id}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {user.name}? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(user.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Role Permissions Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Role Permissions</CardTitle>
+          <CardDescription>Overview of access levels for each role</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="size-4 text-blue-600" />
+                <span className="font-medium">Intern</span>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>Salesforce Buddy access</li>
+                <li>Ask questions & explain pages</li>
+                <li>Guided workflows</li>
+              </ul>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Users className="size-4 text-green-600" />
+                <span className="font-medium">Team Lead</span>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>All Intern permissions</li>
+                <li>Project Intelligence access</li>
+                <li>Knowledge Base management</li>
+              </ul>
+            </div>
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <UserCog className="size-4 text-purple-600" />
+                <span className="font-medium">Admin</span>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>All Team Lead permissions</li>
+                <li>User management</li>
+                <li>Audit logs & analytics</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AuditLogsTab() {
   const [stats, setStats] = useState<AuditStats | null>(null)
   const [logs, setLogs] = useState<AuditLogEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -246,9 +746,9 @@ export function AdminPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Admin Dashboard</h2>
-          <p className="text-muted-foreground">
-            Monitor AI usage, audit logs, and system health
+          <h3 className="text-lg font-semibold">System Analytics</h3>
+          <p className="text-sm text-muted-foreground">
+            Monitor AI usage, performance, and audit logs
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading}>
@@ -357,6 +857,42 @@ export function AdminPanel() {
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+export function AdminPanel() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold">Admin Dashboard</h2>
+        <p className="text-muted-foreground">
+          Manage users, monitor AI usage, and view audit logs
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="size-4" />
+            User Management
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2">
+            <Activity className="size-4" />
+            Audit & Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users">
+          <UserManagementTab />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditLogsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -21,15 +21,17 @@ export default function DashboardPage() {
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-7xl">
           <Tabs defaultValue="buddy" className="space-y-6">
-            <TabsList className="grid w-full max-w-xl grid-cols-3">
+            <TabsList className={`grid w-full max-w-xl ${userRole === 'admin' ? 'grid-cols-3' : userRole === 'lead' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <TabsTrigger value="buddy" className="gap-2">
                 <MessageCircle className="size-4" />
                 Salesforce Buddy
               </TabsTrigger>
-              <TabsTrigger value="intelligence" className="gap-2">
-                <Brain className="size-4" />
-                Project Intelligence
-              </TabsTrigger>
+              {(userRole === 'lead' || userRole === 'admin') && (
+                <TabsTrigger value="intelligence" className="gap-2">
+                  <Brain className="size-4" />
+                  Project Intelligence
+                </TabsTrigger>
+              )}
               {userRole === 'admin' && (
                 <TabsTrigger value="admin" className="gap-2">
                   <Settings className="size-4" />
@@ -48,15 +50,17 @@ export default function DashboardPage() {
               />
             </TabsContent>
 
-            <TabsContent value="intelligence">
-              <ProjectIntelligencePanel
-                userRole={userRole}
-                selectedObject={selectedObject}
-                selectedRecordId={selectedRecordId}
-                onObjectChange={setSelectedObject}
-                onRecordChange={setSelectedRecordId}
-              />
-            </TabsContent>
+            {(userRole === 'lead' || userRole === 'admin') && (
+              <TabsContent value="intelligence">
+                <ProjectIntelligencePanel
+                  userRole={userRole}
+                  selectedObject={selectedObject}
+                  selectedRecordId={selectedRecordId}
+                  onObjectChange={setSelectedObject}
+                  onRecordChange={setSelectedRecordId}
+                />
+              </TabsContent>
+            )}
 
             {userRole === 'admin' && (
               <TabsContent value="admin">

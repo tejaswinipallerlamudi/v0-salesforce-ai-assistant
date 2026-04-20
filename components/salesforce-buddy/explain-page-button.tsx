@@ -415,7 +415,7 @@ export function ExplainPageButton({
     <Button
       onClick={handleExplain}
       disabled={isLoading || !objectName}
-      className="w-full gap-2"
+      className="gap-2 shrink-0 whitespace-nowrap"
     >
       {isLoading ? (
         <>

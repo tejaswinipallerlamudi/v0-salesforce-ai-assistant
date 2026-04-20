@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Empty } from '@/components/ui/empty'
 import { ProjectSelector, MOCK_PROJECTS } from '@/components/project-intelligence/project-selector'
+import { ProjectTeamsPhases } from '@/components/project-intelligence/project-teams-phases'
+import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api-client'
 import type { UserRole, InsightsResponse, Risk, Recommendation } from '@/types'
 import {
@@ -609,11 +611,13 @@ function RecommendationCard({ recommendation }: { recommendation: Recommendation
 export function ProjectIntelligencePanel({
   userRole,
 }: ProjectIntelligencePanelProps) {
+  const { user } = useAuth()
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [insights, setInsights] = useState<InsightsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const selectedProject = MOCK_PROJECTS.find(p => p.id === selectedProjectId)
+  const isAdmin = user?.role === 'admin'
 
   const handleAnalyze = async () => {
     if (!selectedProjectId || !selectedProject) return
@@ -682,6 +686,11 @@ export function ProjectIntelligencePanel({
           </Button>
         </CardContent>
       </Card>
+
+      {/* Admin: Teams & Phases View (shown when project selected, before analysis) */}
+      {isAdmin && selectedProject && (
+        <ProjectTeamsPhases project={selectedProject} />
+      )}
 
       {/* Health Score Card - Full Width */}
       {insights?.overall_health && (

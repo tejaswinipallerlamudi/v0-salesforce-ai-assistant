@@ -88,13 +88,7 @@ export default function DashboardPage() {
 
             {(userRole === 'lead' || userRole === 'admin') && (
               <TabsContent value="intelligence">
-                <ProjectIntelligencePanel
-                  userRole={userRole}
-                  selectedObject={selectedObject}
-                  selectedRecordId={selectedRecordId}
-                  onObjectChange={setSelectedObject}
-                  onRecordChange={setSelectedRecordId}
-                />
+                <ProjectIntelligencePanel userRole={userRole} />
               </TabsContent>
             )}
 

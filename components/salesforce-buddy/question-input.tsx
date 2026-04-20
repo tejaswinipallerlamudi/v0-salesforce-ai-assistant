@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
+import { Badge } from '@/components/ui/badge'
 import type { UserRole, QuestionResponse } from '@/types'
-import { Send } from 'lucide-react'
+import { Send, Paperclip, X, FileText, FileImage, File } from 'lucide-react'
 
 interface QuestionInputProps {
   objectName?: string
@@ -191,6 +192,21 @@ If this doesn't fully answer your question, try rephrasing with more specific ke
   }
 }
 
+// File type icons
+function getFileIcon(file: File) {
+  const type = file.type
+  if (type.startsWith('image/')) return FileImage
+  if (type.includes('pdf') || type.includes('document') || type.includes('text')) return FileText
+  return File
+}
+
+// Format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function QuestionInput({
   objectName,
   recordId,
@@ -200,6 +216,28 @@ export function QuestionInput({
   setIsLoading,
 }: QuestionInputProps) {
   const [question, setQuestion] = useState('')
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Limit file size to 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB')
+        return
+      }
+      setAttachedFile(file)
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeFile = () => {
+    setAttachedFile(null)
+  }
 
   const handleAsk = async () => {
     if (!question.trim()) return
@@ -246,18 +284,59 @@ export function QuestionInput({
 
   return (
     <div className="space-y-3">
-      <Textarea
-        placeholder="Ask a question about Salesforce, processes, or this record..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        className="min-h-[80px] resize-none"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            handleAsk()
-          }
-        }}
-      />
+      <div className="relative">
+        <Textarea
+          placeholder="Ask a question about Salesforce, processes, or this record..."
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          className="min-h-[80px] resize-none pr-10"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              handleAsk()
+            }
+          }}
+        />
+        {/* File attachment button */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="absolute right-2 top-2 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          title="Attach a file (optional)"
+        >
+          <Paperclip className="size-4" />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileSelect}
+          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.png,.jpg,.jpeg"
+          className="hidden"
+        />
+      </div>
+
+      {/* Attached file display */}
+      {attachedFile && (
+        <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border">
+          {(() => {
+            const IconComponent = getFileIcon(attachedFile)
+            return <IconComponent className="size-4 text-muted-foreground" />
+          })()}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{attachedFile.name}</p>
+            <p className="text-xs text-muted-foreground">{formatFileSize(attachedFile.size)}</p>
+          </div>
+          <Badge variant="secondary" className="text-xs shrink-0">Attached</Badge>
+          <button
+            type="button"
+            onClick={removeFile}
+            className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            title="Remove file"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
       
       <div className="flex flex-wrap gap-1">
         {SAMPLE_QUESTIONS.map((q) => (
@@ -286,9 +365,14 @@ export function QuestionInput({
           <>
             <Send className="size-4" />
             Ask Question
+            {attachedFile && <span className="text-xs opacity-70">(with attachment)</span>}
           </>
         )}
       </Button>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Optionally attach documents (PDF, DOC, images) to provide context for your question.
+      </p>
     </div>
   )
 }

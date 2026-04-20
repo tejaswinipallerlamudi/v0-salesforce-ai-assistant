@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +43,10 @@ import {
   CheckCircle2,
   Clock,
   Search,
+  Paperclip,
+  X,
+  FileImage,
+  File,
 } from 'lucide-react'
 
 interface KnowledgeBaseManagerProps {
@@ -121,6 +125,21 @@ const statusConfig = {
   archived: { label: 'Archived', className: 'bg-destructive/10 text-destructive' },
 }
 
+// File type icons
+function getFileIcon(file: File) {
+  const type = file.type
+  if (type.startsWith('image/')) return FileImage
+  if (type.includes('pdf') || type.includes('document') || type.includes('text')) return FileText
+  return File
+}
+
+// Format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
   const [documents, setDocuments] = useState<KBDocument[]>(MOCK_DOCUMENTS)
   const [searchQuery, setSearchQuery] = useState('')
@@ -129,6 +148,8 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<KBDocument | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // New document form state
   const [newDoc, setNewDoc] = useState({
@@ -137,6 +158,31 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
     content: '',
     tags: '',
   })
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Limit file size to 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB')
+        return
+      }
+      setAttachedFile(file)
+      // Auto-fill title from filename if empty
+      if (!newDoc.title) {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+        setNewDoc(prev => ({ ...prev, title: nameWithoutExt }))
+      }
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeFile = () => {
+    setAttachedFile(null)
+  }
 
   const canManage = userRole === 'lead' || userRole === 'admin'
 
@@ -150,7 +196,7 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
 
   const handleAddDocument = async () => {
     setIsLoading(true)
-    // Simulate API call
+    // Simulate API call - in production, would upload file here
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     const newDocument: KBDocument = {
@@ -165,8 +211,18 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
 
     setDocuments([newDocument, ...documents])
     setNewDoc({ title: '', type: 'sop', content: '', tags: '' })
+    setAttachedFile(null)
     setIsAddDialogOpen(false)
     setIsLoading(false)
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    setIsAddDialogOpen(open)
+    if (!open) {
+      // Reset form when dialog closes
+      setNewDoc({ title: '', type: 'sop', content: '', tags: '' })
+      setAttachedFile(null)
+    }
   }
 
   const handleEditDocument = async () => {
@@ -208,7 +264,7 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
             <CardTitle>Knowledge Base Management</CardTitle>
           </div>
           {canManage && (
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog open={isAddDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="size-4" />
@@ -219,7 +275,7 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
                 <DialogHeader>
                   <DialogTitle>Add New Document</DialogTitle>
                   <DialogDescription>
-                    Upload a new SOP, KT note, or field guide to the knowledge base.
+                    Add a new SOP, KT note, or field guide to the knowledge base. You can either paste content directly or upload a file.
                   </DialogDescription>
                 </DialogHeader>
                 <FieldGroup>
@@ -249,6 +305,66 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
                       </SelectContent>
                     </Select>
                   </Field>
+
+                  {/* File Upload Section */}
+                  <Field>
+                    <FieldLabel>Upload Document (Optional)</FieldLabel>
+                    <div className="space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        onChange={handleFileSelect}
+                        accept=".pdf,.doc,.docx,.txt,.md,.xlsx,.xls,.csv,.png,.jpg,.jpeg"
+                        className="hidden"
+                      />
+                      {!attachedFile ? (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg hover:border-primary hover:bg-muted/50 transition-colors cursor-pointer"
+                        >
+                          <div className="p-2 rounded-full bg-muted">
+                            <Paperclip className="size-5 text-muted-foreground" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-medium">Click to upload a file</p>
+                            <p className="text-xs text-muted-foreground">PDF, DOC, TXT, MD, Excel, or images (max 10MB)</p>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                          {(() => {
+                            const IconComponent = getFileIcon(attachedFile)
+                            return <IconComponent className="size-8 text-primary shrink-0" />
+                          })()}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{attachedFile.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(attachedFile.size)}</p>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0">Attached</Badge>
+                          <button
+                            type="button"
+                            onClick={removeFile}
+                            className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Remove file"
+                          >
+                            <X className="size-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </Field>
+
+                  {/* Divider */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or enter content manually</span>
+                    </div>
+                  </div>
+
                   <Field>
                     <FieldLabel htmlFor="content">Content</FieldLabel>
                     <Textarea
@@ -256,8 +372,15 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
                       value={newDoc.content}
                       onChange={(e) => setNewDoc({ ...newDoc, content: e.target.value })}
                       placeholder="Enter document content or paste from existing documentation..."
-                      rows={8}
+                      rows={6}
+                      disabled={!!attachedFile}
+                      className={attachedFile ? 'opacity-50' : ''}
                     />
+                    {attachedFile && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Content will be extracted from the uploaded file.
+                      </p>
+                    )}
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="tags">Tags (comma-separated)</FieldLabel>
@@ -270,19 +393,19 @@ export function KnowledgeBaseManager({ userRole }: KnowledgeBaseManagerProps) {
                   </Field>
                 </FieldGroup>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => handleDialogClose(false)}>
                     Cancel
                   </Button>
                   <Button onClick={handleAddDocument} disabled={isLoading || !newDoc.title}>
                     {isLoading ? (
                       <>
                         <Spinner className="size-4 mr-2" />
-                        Adding...
+                        {attachedFile ? 'Uploading...' : 'Adding...'}
                       </>
                     ) : (
                       <>
                         <Upload className="size-4 mr-2" />
-                        Add Document
+                        {attachedFile ? 'Upload Document' : 'Add Document'}
                       </>
                     )}
                   </Button>

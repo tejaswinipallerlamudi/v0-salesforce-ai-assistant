@@ -1,23 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Header } from '@/components/header'
 import { SalesforceBuddyPanel } from '@/components/salesforce-buddy/salesforce-buddy-panel'
 import { ProjectIntelligencePanel } from '@/components/project-intelligence/project-intelligence-panel'
 import { AdminPanel } from '@/components/admin/admin-panel'
 import { KnowledgeBaseManager } from '@/components/knowledge-base/knowledge-base-manager'
-import type { UserRole } from '@/types'
+import { Spinner } from '@/components/ui/spinner'
+import { useAuth } from '@/contexts/auth-context'
 import { MessageCircle, Brain, Settings, BookOpen } from 'lucide-react'
 
 export default function DashboardPage() {
-  const [userRole, setUserRole] = useState<UserRole>('intern')
+  const router = useRouter()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [selectedObject, setSelectedObject] = useState<string>('')
   const [selectedRecordId, setSelectedRecordId] = useState<string>('')
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner className="size-8" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated || !user) {
+    return null
+  }
+
+  const userRole = user.role
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header userRole={userRole} onRoleChange={setUserRole} />
+      <Header userRole={userRole} userName={user.name} />
       
       <main className="flex-1 p-6">
         <div className="container mx-auto">

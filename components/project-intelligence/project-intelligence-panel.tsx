@@ -8,7 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
 import { Progress } from '@/components/ui/progress'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Empty } from '@/components/ui/empty'
 import { ObjectSelector } from '@/components/salesforce-buddy/object-selector'
 import { RecordSelector } from '@/components/salesforce-buddy/record-selector'
@@ -264,9 +263,9 @@ export function ProjectIntelligencePanel({
     : 'text-muted-foreground'
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Left Column - Controls */}
-      <div className="space-y-6">
+    <div className="space-y-6">
+      {/* Top Row - Controls in responsive grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -376,25 +375,9 @@ export function ProjectIntelligencePanel({
         )}
       </div>
 
-      {/* Right Column - Results */}
-      <div className="lg:col-span-2">
-        {!insights ? (
-          <Card className="h-full min-h-[400px]">
-            <CardContent className="flex h-full items-center justify-center p-6">
-              <Empty
-                icon={Brain}
-                title="Analyze a project"
-                description={
-                  userRole === 'lead'
-                    ? 'Select a project record to get AI-powered risk analysis and strategic recommendations.'
-                    : 'Choose an object and record, then click Analyze to see project insights.'
-                }
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <ScrollArea className="h-[800px] pr-4">
-            <div className="space-y-6">
+      {/* Results Section - Full Width */}
+      {insights && (
+        <div className="grid gap-6 md:grid-cols-2">
               {/* Executive Summary */}
               {insights.executive_summary && (
                 <Card>
@@ -509,15 +492,13 @@ export function ProjectIntelligencePanel({
                 </Card>
               )}
 
-              {/* Sources & Safety */}
-              <div className="flex items-center gap-2 text-xs text-success">
-                <Shield className="size-4" />
-                Analysis based on approved metadata and historical patterns only.
-              </div>
-            </div>
-          </ScrollArea>
-        )}
-      </div>
+          {/* Sources & Safety */}
+          <div className="flex items-center gap-2 text-xs text-success md:col-span-2">
+            <Shield className="size-4" />
+            Analysis based on approved metadata and historical patterns only.
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -6,8 +6,9 @@ import { Header } from '@/components/header'
 import { SalesforceBuddyPanel } from '@/components/salesforce-buddy/salesforce-buddy-panel'
 import { ProjectIntelligencePanel } from '@/components/project-intelligence/project-intelligence-panel'
 import { AdminPanel } from '@/components/admin/admin-panel'
+import { KnowledgeBaseManager } from '@/components/knowledge-base/knowledge-base-manager'
 import type { UserRole } from '@/types'
-import { MessageCircle, Brain, Settings } from 'lucide-react'
+import { MessageCircle, Brain, Settings, BookOpen } from 'lucide-react'
 
 export default function DashboardPage() {
   const [userRole, setUserRole] = useState<UserRole>('intern')
@@ -21,7 +22,7 @@ export default function DashboardPage() {
       <main className="flex-1 p-6">
         <div className="container mx-auto">
           <Tabs defaultValue="buddy" className="space-y-6">
-            <TabsList className={`grid w-full ${userRole === 'admin' ? 'max-w-2xl grid-cols-3' : userRole === 'lead' ? 'max-w-lg grid-cols-2' : 'max-w-xs grid-cols-1'}`}>
+            <TabsList className={`grid w-full ${userRole === 'admin' ? 'max-w-3xl grid-cols-4' : userRole === 'lead' ? 'max-w-2xl grid-cols-3' : 'max-w-xs grid-cols-1'}`}>
               <TabsTrigger value="buddy" className="gap-2">
                 <MessageCircle className="size-4" />
                 Salesforce Buddy
@@ -30,6 +31,12 @@ export default function DashboardPage() {
                 <TabsTrigger value="intelligence" className="gap-2">
                   <Brain className="size-4" />
                   Project Intelligence
+                </TabsTrigger>
+              )}
+              {(userRole === 'lead' || userRole === 'admin') && (
+                <TabsTrigger value="knowledge" className="gap-2">
+                  <BookOpen className="size-4" />
+                  Knowledge Base
                 </TabsTrigger>
               )}
               {userRole === 'admin' && (
@@ -59,6 +66,12 @@ export default function DashboardPage() {
                   onObjectChange={setSelectedObject}
                   onRecordChange={setSelectedRecordId}
                 />
+              </TabsContent>
+            )}
+
+            {(userRole === 'lead' || userRole === 'admin') && (
+              <TabsContent value="knowledge">
+                <KnowledgeBaseManager userRole={userRole} />
               </TabsContent>
             )}
 

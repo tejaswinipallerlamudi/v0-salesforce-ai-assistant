@@ -40,9 +40,9 @@ export function SalesforceBuddyPanel({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Left Column - Selection & Actions */}
-      <div className="space-y-6">
+    <div className="space-y-6">
+      {/* Top Row - Main panels in a responsive grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -155,16 +155,14 @@ export function SalesforceBuddyPanel({
         </Card>
       </div>
 
-      {/* Right Column - Guided Steps Results */}
+      {/* Guided Steps Results - Full Width */}
       {guidedSteps && (
-        <div className="lg:col-span-2">
-          <AnswerDisplay
-            explanation={null}
-            answer={null}
-            guidedSteps={guidedSteps}
-            userRole={userRole}
-          />
-        </div>
+        <AnswerDisplay
+          explanation={null}
+          answer={null}
+          guidedSteps={guidedSteps}
+          userRole={userRole}
+        />
       )}
     </div>
   )

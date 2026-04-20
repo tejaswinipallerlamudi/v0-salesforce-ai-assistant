@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo } from 'react'
 import {
   Select,
   SelectContent,
@@ -10,18 +10,19 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/contexts/auth-context'
 import { 
   Folder, 
   Rocket, 
   Settings, 
   Database,
   Globe,
-  Smartphone,
   Server,
-  BarChart3,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  User,
+  Users
 } from 'lucide-react'
 
 export interface Project {
@@ -35,6 +36,11 @@ export interface Project {
   targetEndDate: string
   teamSize: number
   description: string
+  // User assignment fields
+  ownerId: string // User ID of the project owner
+  ownerName: string
+  participantIds: string[] // User IDs of team members
+  participantNames: string[]
 }
 
 interface ProjectSelectorProps {
@@ -65,7 +71,8 @@ const statusConfig: Record<string, { label: string; className: string; icon: typ
   completed: { label: 'Completed', className: 'bg-info/10 text-info', icon: CheckCircle2 },
 }
 
-// Mock projects for demo
+// Mock projects for demo - with user assignments
+// User IDs: user-001 (intern/Alex), user-002 (lead/Sarah), user-003 (admin/Michael)
 const MOCK_PROJECTS: Project[] = [
   {
     id: 'PROJ-001',
@@ -78,6 +85,10 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-06-30',
     teamSize: 8,
     description: 'Full CRM platform migration from legacy system to Salesforce',
+    ownerId: 'user-002', // Sarah (Lead)
+    ownerName: 'Sarah Mitchell',
+    participantIds: ['user-001', 'user-003'], // Alex and Michael
+    participantNames: ['Alex Johnson', 'Michael Chen'],
   },
   {
     id: 'PROJ-002',
@@ -90,6 +101,10 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-05-15',
     teamSize: 5,
     description: 'New Salesforce Sales Cloud implementation with custom workflows',
+    ownerId: 'user-003', // Michael (Admin)
+    ownerName: 'Michael Chen',
+    participantIds: ['user-001'], // Alex
+    participantNames: ['Alex Johnson'],
   },
   {
     id: 'PROJ-003',
@@ -102,6 +117,10 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-08-30',
     teamSize: 6,
     description: 'Integration between Salesforce and SAP ERP systems',
+    ownerId: 'user-002', // Sarah (Lead)
+    ownerName: 'Sarah Mitchell',
+    participantIds: [], // No additional participants from our users
+    participantNames: [],
   },
   {
     id: 'PROJ-004',
@@ -114,6 +133,10 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-04-30',
     teamSize: 4,
     description: 'Adding new case management features and automation',
+    ownerId: 'user-001', // Alex (Intern) - supervised project
+    ownerName: 'Alex Johnson',
+    participantIds: ['user-002'], // Sarah supervising
+    participantNames: ['Sarah Mitchell'],
   },
   {
     id: 'PROJ-005',
@@ -126,6 +149,10 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-12-31',
     teamSize: 3,
     description: 'Ongoing support and maintenance for customer portal',
+    ownerId: 'user-003', // Michael (Admin)
+    ownerName: 'Michael Chen',
+    participantIds: [], // No additional participants from our users
+    participantNames: [],
   },
   {
     id: 'PROJ-006',
@@ -138,13 +165,32 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-07-15',
     teamSize: 7,
     description: 'Custom analytics dashboards with Einstein Analytics',
+    ownerId: 'user-002', // Sarah (Lead)
+    ownerName: 'Sarah Mitchell',
+    participantIds: ['user-001', 'user-003'], // Alex and Michael
+    participantNames: ['Alex Johnson', 'Michael Chen'],
   },
 ]
 
 export function ProjectSelector({ selectedProjectId, onSelect }: ProjectSelectorProps) {
-  const [projects] = useState<Project[]>(MOCK_PROJECTS)
+  const { user } = useAuth()
+  
+  // Filter projects where user is either owner or participant
+  const userProjects = useMemo(() => {
+    if (!user) return []
+    
+    // Admin users can see all projects
+    if (user.role === 'admin') {
+      return MOCK_PROJECTS
+    }
+    
+    // Other users see only projects they own or participate in
+    return MOCK_PROJECTS.filter(project => 
+      project.ownerId === user.id || project.participantIds.includes(user.id)
+    )
+  }, [user])
 
-  const selectedProject = projects.find(p => p.id === selectedProjectId)
+  const selectedProject = userProjects.find(p => p.id === selectedProjectId)
 
   return (
     <div className="space-y-2">
@@ -165,36 +211,51 @@ export function ProjectSelector({ selectedProjectId, onSelect }: ProjectSelector
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {projects.map((project) => {
-            const Icon = projectTypeIcons[project.type] || Folder
-            const status = statusConfig[project.status]
-            const StatusIcon = status.icon
-            return (
-              <SelectItem key={project.id} value={project.id}>
-                <div className="flex items-center gap-3 py-1">
-                  <Icon className="size-4 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{project.name}</span>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {project.code}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{project.client}</span>
-                      <span>•</span>
-                      <span>{projectTypeLabels[project.type]}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <StatusIcon className="size-3" />
-                        {status.label}
-                      </span>
+          {userProjects.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              <Users className="size-8 mx-auto mb-2 opacity-50" />
+              <p>No projects assigned to you</p>
+              <p className="text-xs">Contact your admin to be added to a project</p>
+            </div>
+          ) : (
+            userProjects.map((project) => {
+              const Icon = projectTypeIcons[project.type] || Folder
+              const status = statusConfig[project.status]
+              const StatusIcon = status.icon
+              const isOwner = user?.id === project.ownerId
+              return (
+                <SelectItem key={project.id} value={project.id}>
+                  <div className="flex items-center gap-3 py-1">
+                    <Icon className="size-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{project.name}</span>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {project.code}
+                        </Badge>
+                        {isOwner && (
+                          <Badge variant="secondary" className="text-xs shrink-0 gap-1">
+                            <User className="size-2.5" />
+                            Owner
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{project.client}</span>
+                        <span>•</span>
+                        <span>{projectTypeLabels[project.type]}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <StatusIcon className="size-3" />
+                          {status.label}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </SelectItem>
-            )
-          })}
+                </SelectItem>
+              )
+            })
+          )}
         </SelectContent>
       </Select>
       
@@ -203,7 +264,15 @@ export function ProjectSelector({ selectedProjectId, onSelect }: ProjectSelector
         <div className="rounded-lg border bg-muted/30 p-3 mt-2">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium">{selectedProject.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{selectedProject.name}</p>
+                {user?.id === selectedProject.ownerId && (
+                  <Badge variant="secondary" className="text-xs gap-1">
+                    <User className="size-2.5" />
+                    You own this project
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">{selectedProject.description}</p>
             </div>
             <Badge className={statusConfig[selectedProject.status].className}>
@@ -220,8 +289,12 @@ export function ProjectSelector({ selectedProjectId, onSelect }: ProjectSelector
               {selectedProject.client}
             </span>
             <span className="flex items-center gap-1">
-              <BarChart3 className="size-3" />
+              <Users className="size-3" />
               Team: {selectedProject.teamSize}
+            </span>
+            <span className="flex items-center gap-1">
+              <User className="size-3" />
+              Owner: {selectedProject.ownerName}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="size-3" />

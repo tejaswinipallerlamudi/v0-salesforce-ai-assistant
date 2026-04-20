@@ -8,8 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Progress } from '@/components/ui/progress'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Empty } from '@/components/ui/empty'
-import { ObjectSelector } from '@/components/salesforce-buddy/object-selector'
-import { RecordSelector } from '@/components/salesforce-buddy/record-selector'
+import { ProjectSelector, MOCK_PROJECTS } from '@/components/project-intelligence/project-selector'
 import { apiClient } from '@/lib/api-client'
 import type { UserRole, InsightsResponse, Risk, Recommendation } from '@/types'
 import {
@@ -28,10 +27,6 @@ import {
 
 interface ProjectIntelligencePanelProps {
   userRole: UserRole
-  selectedObject: string
-  selectedRecordId: string
-  onObjectChange: (object: string) => void
-  onRecordChange: (recordId: string) => void
 }
 
 // Mock insights for demo
@@ -229,18 +224,19 @@ function RecommendationCard({ recommendation }: { recommendation: Recommendation
 
 export function ProjectIntelligencePanel({
   userRole,
-  selectedObject,
-  selectedRecordId,
-  onObjectChange,
-  onRecordChange,
 }: ProjectIntelligencePanelProps) {
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [insights, setInsights] = useState<InsightsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  const selectedProject = MOCK_PROJECTS.find(p => p.id === selectedProjectId)
+
   const handleAnalyze = async () => {
+    if (!selectedProjectId || !selectedProject) return
+    
     setIsLoading(true)
     try {
-      const result = await apiClient.analyzeProject(selectedObject, selectedRecordId, userRole, {
+      const result = await apiClient.analyzeProject(selectedProject.name, selectedProjectId, userRole, {
         include_similar_projects: true,
         include_risks: true,
         include_recommendations: true,
@@ -248,8 +244,12 @@ export function ProjectIntelligencePanel({
       })
       setInsights(result)
     } catch {
-      // Use mock data for demo
-      setInsights(MOCK_INSIGHTS)
+      // Use mock data for demo - update with selected project info
+      setInsights({
+        ...MOCK_INSIGHTS,
+        object_name: selectedProject.name,
+        record_id: selectedProjectId,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -275,44 +275,31 @@ export function ProjectIntelligencePanel({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex-1">
-              <ObjectSelector
-                selectedObject={selectedObject}
-                onSelect={(obj) => {
-                  onObjectChange(obj)
-                  onRecordChange('')
-                  setInsights(null)
-                }}
-              />
-            </div>
-            {selectedObject && (
-              <div className="flex-1">
-                <RecordSelector
-                  objectName={selectedObject}
-                  selectedRecordId={selectedRecordId}
-                  onSelect={onRecordChange}
-                />
-              </div>
+          <ProjectSelector
+            selectedProjectId={selectedProjectId}
+            onSelect={(projectId) => {
+              setSelectedProjectId(projectId)
+              setInsights(null)
+            }}
+          />
+          <Button
+            onClick={handleAnalyze}
+            disabled={isLoading || !selectedProjectId}
+            className="w-full gap-2"
+            size="lg"
+          >
+            {isLoading ? (
+              <>
+                <Spinner className="size-4" />
+                Analyzing Project...
+              </>
+            ) : (
+              <>
+                <Brain className="size-4" />
+                Analyze Project
+              </>
             )}
-            <Button
-              onClick={handleAnalyze}
-              disabled={isLoading || !selectedObject}
-              className="gap-2 sm:w-auto"
-            >
-              {isLoading ? (
-                <>
-                  <Spinner className="size-4" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Brain className="size-4" />
-                  Analyze Project
-                </>
-              )}
-            </Button>
-          </div>
+          </Button>
         </CardContent>
       </Card>
 

@@ -41,128 +41,135 @@ export function SalesforceBuddyPanel({
 
   return (
     <div className="space-y-6">
-      {/* Top Row - Main panels in a responsive grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-5 text-accent" />
-              <CardTitle>Salesforce Buddy</CardTitle>
+      {/* Selection Controls Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-5 text-accent" />
+            <CardTitle>Salesforce Buddy</CardTitle>
+          </div>
+          <CardDescription>
+            Your AI assistant for understanding Salesforce pages, fields, and processes.
+            {userRole === 'intern' && ' Perfect for learning and onboarding.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex-1">
+              <ObjectSelector
+                selectedObject={selectedObject}
+                onSelect={(obj) => {
+                  onObjectChange(obj)
+                  onRecordChange('')
+                  handleClearResults()
+                }}
+              />
             </div>
-            <CardDescription>
-              Your AI assistant for understanding Salesforce pages, fields, and processes.
-              {userRole === 'intern' && ' Perfect for learning and onboarding.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ObjectSelector
-              selectedObject={selectedObject}
-              onSelect={(obj) => {
-                onObjectChange(obj)
-                onRecordChange('')
-                handleClearResults()
-              }}
-            />
-
             {selectedObject && (
-              <RecordSelector
+              <div className="flex-1">
+                <RecordSelector
+                  objectName={selectedObject}
+                  selectedRecordId={selectedRecordId}
+                  onSelect={onRecordChange}
+                  onSafetyInfo={setSafetyInfo}
+                />
+              </div>
+            )}
+            {selectedObject && (
+              <ExplainPageButton
                 objectName={selectedObject}
-                selectedRecordId={selectedRecordId}
-                onSelect={onRecordChange}
-                onSafetyInfo={setSafetyInfo}
+                recordId={selectedRecordId}
+                userRole={userRole}
+                onExplanation={setExplanation}
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
               />
             )}
+          </div>
+          {safetyInfo && <SafetyBadge safetyInfo={safetyInfo} />}
+        </CardContent>
+      </Card>
 
-            {selectedObject && (
-              <div className="flex flex-col gap-2">
-                <ExplainPageButton
-                  objectName={selectedObject}
-                  recordId={selectedRecordId}
-                  userRole={userRole}
-                  onExplanation={setExplanation}
-                  isLoading={isLoading}
-                  setIsLoading={setIsLoading}
-                />
-
-                {safetyInfo && <SafetyBadge safetyInfo={safetyInfo} />}
-              </div>
-            )}
-
-            {/* Explanation appears directly below the button */}
-            {explanation && (
-              <div className="mt-4 pt-4 border-t">
-                <AnswerDisplay
-                  explanation={explanation}
-                  answer={null}
-                  guidedSteps={null}
-                  userRole={userRole}
-                  compact
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+      {/* Explanation Results */}
+      {explanation && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Ask a Question</CardTitle>
-            <CardDescription>
-              Get answers based on SOPs and approved knowledge
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <QuestionInput
-              objectName={selectedObject}
-              recordId={selectedRecordId}
+          <CardContent className="pt-6">
+            <AnswerDisplay
+              explanation={explanation}
+              answer={null}
+              guidedSteps={null}
               userRole={userRole}
-              onAnswer={setAnswer}
-              isLoading={isLoading}
-              setIsLoading={setIsLoading}
-            />
-
-            {/* Answer appears directly below the question input */}
-            {answer && (
-              <div className="pt-4 border-t">
-                <AnswerDisplay
-                  explanation={null}
-                  answer={answer}
-                  guidedSteps={null}
-                  userRole={userRole}
-                  compact
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Guided Workflows</CardTitle>
-            <CardDescription>
-              Step-by-step guidance for common processes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <GuidedStepsPanel
-              objectName={selectedObject}
-              recordId={selectedRecordId}
-              userRole={userRole}
-              onSteps={setGuidedSteps}
-              isLoading={isLoading}
-              setIsLoading={setIsLoading}
             />
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      {/* Guided Steps Results - Full Width */}
+      {/* Ask a Question Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ask a Question</CardTitle>
+          <CardDescription>
+            Get answers based on SOPs and approved knowledge
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <QuestionInput
+            objectName={selectedObject}
+            recordId={selectedRecordId}
+            userRole={userRole}
+            onAnswer={setAnswer}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Answer Results */}
+      {answer && (
+        <Card>
+          <CardContent className="pt-6">
+            <AnswerDisplay
+              explanation={null}
+              answer={answer}
+              guidedSteps={null}
+              userRole={userRole}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Guided Workflows Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Guided Workflows</CardTitle>
+          <CardDescription>
+            Step-by-step guidance for common processes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GuidedStepsPanel
+            objectName={selectedObject}
+            recordId={selectedRecordId}
+            userRole={userRole}
+            onSteps={setGuidedSteps}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Guided Steps Results */}
       {guidedSteps && (
-        <AnswerDisplay
-          explanation={null}
-          answer={null}
-          guidedSteps={guidedSteps}
-          userRole={userRole}
-        />
+        <Card>
+          <CardContent className="pt-6">
+            <AnswerDisplay
+              explanation={null}
+              answer={null}
+              guidedSteps={guidedSteps}
+              userRole={userRole}
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   )

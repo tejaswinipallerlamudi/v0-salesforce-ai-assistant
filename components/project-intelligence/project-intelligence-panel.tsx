@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
 import { Progress } from '@/components/ui/progress'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -237,17 +236,16 @@ export function ProjectIntelligencePanel({
 }: ProjectIntelligencePanelProps) {
   const [insights, setInsights] = useState<InsightsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [options, setOptions] = useState({
-    include_similar_projects: true,
-    include_risks: true,
-    include_recommendations: true,
-    include_summary: true,
-  })
 
   const handleAnalyze = async () => {
     setIsLoading(true)
     try {
-      const result = await apiClient.analyzeProject(selectedObject, selectedRecordId, userRole, options)
+      const result = await apiClient.analyzeProject(selectedObject, selectedRecordId, userRole, {
+        include_similar_projects: true,
+        include_risks: true,
+        include_recommendations: true,
+        include_summary: true,
+      })
       setInsights(result)
     } catch {
       // Use mock data for demo
@@ -264,66 +262,43 @@ export function ProjectIntelligencePanel({
 
   return (
     <div className="space-y-6">
-      {/* Top Row - Controls in responsive grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Brain className="size-5 text-accent" />
-              <CardTitle>Project Intelligence</CardTitle>
-            </div>
-            <CardDescription>
-              AI-powered risk analysis and recommendations based on historical project data.
-              {userRole === 'lead' && ' Get strategic insights for decision making.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ObjectSelector
-              selectedObject={selectedObject}
-              onSelect={(obj) => {
-                onObjectChange(obj)
-                onRecordChange('')
-                setInsights(null)
-              }}
-            />
-
-            {selectedObject && (
-              <RecordSelector
-                objectName={selectedObject}
-                selectedRecordId={selectedRecordId}
-                onSelect={onRecordChange}
+      {/* Controls Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Brain className="size-5 text-accent" />
+            <CardTitle>Project Intelligence</CardTitle>
+          </div>
+          <CardDescription>
+            AI-powered risk analysis and recommendations based on historical project data.
+            {userRole === 'lead' && ' Get strategic insights for decision making.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex-1">
+              <ObjectSelector
+                selectedObject={selectedObject}
+                onSelect={(obj) => {
+                  onObjectChange(obj)
+                  onRecordChange('')
+                  setInsights(null)
+                }}
               />
-            )}
-
-            <div className="space-y-3 pt-2">
-              <p className="text-sm font-medium">Analysis Options</p>
-              <div className="space-y-2">
-                {[
-                  { key: 'include_risks', label: 'Risk Analysis' },
-                  { key: 'include_recommendations', label: 'Recommendations' },
-                  { key: 'include_similar_projects', label: 'Similar Projects' },
-                  { key: 'include_summary', label: 'Executive Summary' },
-                ].map((opt) => (
-                  <div key={opt.key} className="flex items-center gap-2">
-                    <Checkbox
-                      id={opt.key}
-                      checked={options[opt.key as keyof typeof options]}
-                      onCheckedChange={(checked) =>
-                        setOptions((prev) => ({ ...prev, [opt.key]: !!checked }))
-                      }
-                    />
-                    <label htmlFor={opt.key} className="text-sm cursor-pointer">
-                      {opt.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
             </div>
-
+            {selectedObject && (
+              <div className="flex-1">
+                <RecordSelector
+                  objectName={selectedObject}
+                  selectedRecordId={selectedRecordId}
+                  onSelect={onRecordChange}
+                />
+              </div>
+            )}
             <Button
               onClick={handleAnalyze}
               disabled={isLoading || !selectedObject}
-              className="w-full gap-2"
+              className="gap-2 sm:w-auto"
             >
               {isLoading ? (
                 <>
@@ -337,47 +312,51 @@ export function ProjectIntelligencePanel({
                 </>
               )}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Health Score Card */}
-        {insights?.overall_health && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Project Health</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className={`text-4xl font-bold ${healthColor}`}>
+      {/* Health Score Card - Full Width */}
+      {insights?.overall_health && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Project Health Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`text-5xl font-bold ${healthColor}`}>
                   {insights.overall_health.score}
                 </div>
-                <Badge
-                  variant="outline"
-                  className={`capitalize ${healthColor}`}
-                >
-                  {insights.overall_health.status.replace('_', ' ')}
-                </Badge>
+                <div>
+                  <Badge
+                    variant="outline"
+                    className={`capitalize ${healthColor} text-sm`}
+                  >
+                    {insights.overall_health.status.replace('_', ' ')}
+                  </Badge>
+                  <Progress value={insights.overall_health.score} className="h-2 w-32 mt-2" />
+                </div>
               </div>
-              <Progress value={insights.overall_health.score} className="h-2" />
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Key Factors:</p>
-                <ul className="space-y-1">
+                <div className="flex flex-wrap gap-2">
                   {insights.overall_health.key_factors.map((factor, i) => (
-                    <li key={i} className="text-xs flex items-center gap-1">
-                      <CheckCircle2 className="size-3" />
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      <CheckCircle2 className="size-3 mr-1" />
                       {factor}
-                    </li>
+                    </Badge>
                   ))}
-                </ul>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Results Section - Full Width */}
+      {/* Results Section - Single Column */}
       {insights && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
               {/* Executive Summary */}
               {insights.executive_summary && (
                 <Card>
@@ -493,7 +472,7 @@ export function ProjectIntelligencePanel({
               )}
 
           {/* Sources & Safety */}
-          <div className="flex items-center gap-2 text-xs text-success md:col-span-2">
+          <div className="flex items-center gap-2 text-xs text-success">
             <Shield className="size-4" />
             Analysis based on approved metadata and historical patterns only.
           </div>

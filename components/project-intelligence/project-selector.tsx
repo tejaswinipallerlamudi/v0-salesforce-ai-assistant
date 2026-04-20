@@ -25,6 +25,24 @@ import {
   Users
 } from 'lucide-react'
 
+export interface ProjectPhase {
+  id: string
+  name: string
+  status: 'not_started' | 'in_progress' | 'completed' | 'blocked'
+  startDate: string
+  endDate: string
+  progress: number // 0-100
+}
+
+export interface ProjectTeam {
+  id: string
+  name: string
+  role: string // e.g., "Development", "QA", "Business Analysis", "Integration"
+  members: string[]
+  lead: string
+  currentPhase: string // Phase ID they're working on
+}
+
 export interface Project {
   id: string
   name: string
@@ -41,6 +59,9 @@ export interface Project {
   ownerName: string
   participantIds: string[] // User IDs of team members
   participantNames: string[]
+  // Teams and phases (for admin view)
+  phases: ProjectPhase[]
+  teams: ProjectTeam[]
 }
 
 interface ProjectSelectorProps {
@@ -85,10 +106,23 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-06-30',
     teamSize: 8,
     description: 'Full CRM platform migration from legacy system to Salesforce',
-    ownerId: 'user-002', // Sarah (Lead)
+    ownerId: 'user-002',
     ownerName: 'Sarah Mitchell',
-    participantIds: ['user-001', 'user-003'], // Alex and Michael
+    participantIds: ['user-001', 'user-003'],
     participantNames: ['Alex Johnson', 'Michael Chen'],
+    phases: [
+      { id: 'PH1-001', name: 'Discovery & Assessment', status: 'completed', startDate: '2024-01-15', endDate: '2024-02-15', progress: 100 },
+      { id: 'PH2-001', name: 'Data Mapping & ETL Design', status: 'completed', startDate: '2024-02-16', endDate: '2024-03-15', progress: 100 },
+      { id: 'PH3-001', name: 'Data Migration', status: 'in_progress', startDate: '2024-03-16', endDate: '2024-05-15', progress: 45 },
+      { id: 'PH4-001', name: 'Integration Testing', status: 'not_started', startDate: '2024-05-16', endDate: '2024-06-10', progress: 0 },
+      { id: 'PH5-001', name: 'UAT & Go-Live', status: 'not_started', startDate: '2024-06-11', endDate: '2024-06-30', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-001', name: 'Data Migration Team', role: 'Data Engineering', members: ['Alex Johnson', 'David Lee', 'Emma Wilson'], lead: 'David Lee', currentPhase: 'PH3-001' },
+      { id: 'TM2-001', name: 'Integration Team', role: 'Integration', members: ['Michael Chen', 'Lisa Park'], lead: 'Michael Chen', currentPhase: 'PH3-001' },
+      { id: 'TM3-001', name: 'QA Team', role: 'Quality Assurance', members: ['James Brown', 'Maria Garcia'], lead: 'James Brown', currentPhase: 'PH2-001' },
+      { id: 'TM4-001', name: 'Business Analysis', role: 'Business Analysis', members: ['Sarah Mitchell'], lead: 'Sarah Mitchell', currentPhase: 'PH3-001' },
+    ],
   },
   {
     id: 'PROJ-002',
@@ -101,10 +135,22 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-05-15',
     teamSize: 5,
     description: 'New Salesforce Sales Cloud implementation with custom workflows',
-    ownerId: 'user-003', // Michael (Admin)
+    ownerId: 'user-003',
     ownerName: 'Michael Chen',
-    participantIds: ['user-001'], // Alex
+    participantIds: ['user-001'],
     participantNames: ['Alex Johnson'],
+    phases: [
+      { id: 'PH1-002', name: 'Requirements Gathering', status: 'completed', startDate: '2024-02-01', endDate: '2024-02-20', progress: 100 },
+      { id: 'PH2-002', name: 'Configuration & Setup', status: 'completed', startDate: '2024-02-21', endDate: '2024-03-20', progress: 100 },
+      { id: 'PH3-002', name: 'Custom Development', status: 'in_progress', startDate: '2024-03-21', endDate: '2024-04-15', progress: 70 },
+      { id: 'PH4-002', name: 'Testing & Training', status: 'not_started', startDate: '2024-04-16', endDate: '2024-05-05', progress: 0 },
+      { id: 'PH5-002', name: 'Deployment', status: 'not_started', startDate: '2024-05-06', endDate: '2024-05-15', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-002', name: 'Development Team', role: 'Development', members: ['Alex Johnson', 'Chris Taylor'], lead: 'Alex Johnson', currentPhase: 'PH3-002' },
+      { id: 'TM2-002', name: 'Configuration Team', role: 'Configuration', members: ['Michael Chen', 'Rachel Adams'], lead: 'Michael Chen', currentPhase: 'PH3-002' },
+      { id: 'TM3-002', name: 'Training Team', role: 'Training', members: ['Jennifer White'], lead: 'Jennifer White', currentPhase: 'PH2-002' },
+    ],
   },
   {
     id: 'PROJ-003',
@@ -117,10 +163,22 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-08-30',
     teamSize: 6,
     description: 'Integration between Salesforce and SAP ERP systems',
-    ownerId: 'user-002', // Sarah (Lead)
+    ownerId: 'user-002',
     ownerName: 'Sarah Mitchell',
-    participantIds: [], // No additional participants from our users
+    participantIds: [],
     participantNames: [],
+    phases: [
+      { id: 'PH1-003', name: 'Integration Analysis', status: 'completed', startDate: '2024-03-01', endDate: '2024-03-31', progress: 100 },
+      { id: 'PH2-003', name: 'API Development', status: 'in_progress', startDate: '2024-04-01', endDate: '2024-05-31', progress: 60 },
+      { id: 'PH3-003', name: 'Middleware Setup', status: 'in_progress', startDate: '2024-05-01', endDate: '2024-06-30', progress: 25 },
+      { id: 'PH4-003', name: 'Integration Testing', status: 'not_started', startDate: '2024-07-01', endDate: '2024-08-15', progress: 0 },
+      { id: 'PH5-003', name: 'Production Deployment', status: 'not_started', startDate: '2024-08-16', endDate: '2024-08-30', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-003', name: 'Salesforce Team', role: 'Salesforce Development', members: ['Sarah Mitchell', 'Tom Anderson'], lead: 'Sarah Mitchell', currentPhase: 'PH2-003' },
+      { id: 'TM2-003', name: 'SAP Team', role: 'SAP Integration', members: ['Robert Kim', 'Anna Schmidt'], lead: 'Robert Kim', currentPhase: 'PH2-003' },
+      { id: 'TM3-003', name: 'Middleware Team', role: 'MuleSoft', members: ['Kevin O\'Brien', 'Sophie Martin'], lead: 'Kevin O\'Brien', currentPhase: 'PH3-003' },
+    ],
   },
   {
     id: 'PROJ-004',
@@ -133,10 +191,19 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-04-30',
     teamSize: 4,
     description: 'Adding new case management features and automation',
-    ownerId: 'user-001', // Alex (Intern) - supervised project
+    ownerId: 'user-001',
     ownerName: 'Alex Johnson',
-    participantIds: ['user-002'], // Sarah supervising
+    participantIds: ['user-002'],
     participantNames: ['Sarah Mitchell'],
+    phases: [
+      { id: 'PH1-004', name: 'Analysis', status: 'completed', startDate: '2024-02-15', endDate: '2024-02-28', progress: 100 },
+      { id: 'PH2-004', name: 'Development', status: 'in_progress', startDate: '2024-03-01', endDate: '2024-04-10', progress: 80 },
+      { id: 'PH3-004', name: 'Testing & Deployment', status: 'not_started', startDate: '2024-04-11', endDate: '2024-04-30', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-004', name: 'Enhancement Team', role: 'Development', members: ['Alex Johnson', 'Nina Patel'], lead: 'Alex Johnson', currentPhase: 'PH2-004' },
+      { id: 'TM2-004', name: 'Review Team', role: 'Code Review', members: ['Sarah Mitchell', 'Mark Wilson'], lead: 'Sarah Mitchell', currentPhase: 'PH2-004' },
+    ],
   },
   {
     id: 'PROJ-005',
@@ -149,10 +216,19 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-12-31',
     teamSize: 3,
     description: 'Ongoing support and maintenance for customer portal',
-    ownerId: 'user-003', // Michael (Admin)
+    ownerId: 'user-003',
     ownerName: 'Michael Chen',
-    participantIds: [], // No additional participants from our users
+    participantIds: [],
     participantNames: [],
+    phases: [
+      { id: 'PH1-005', name: 'Q1 Support', status: 'completed', startDate: '2024-01-01', endDate: '2024-03-31', progress: 100 },
+      { id: 'PH2-005', name: 'Q2 Support', status: 'blocked', startDate: '2024-04-01', endDate: '2024-06-30', progress: 10 },
+      { id: 'PH3-005', name: 'Q3 Support', status: 'not_started', startDate: '2024-07-01', endDate: '2024-09-30', progress: 0 },
+      { id: 'PH4-005', name: 'Q4 Support', status: 'not_started', startDate: '2024-10-01', endDate: '2024-12-31', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-005', name: 'Support Team', role: 'Support', members: ['Michael Chen', 'Emily Davis', 'Josh Turner'], lead: 'Michael Chen', currentPhase: 'PH2-005' },
+    ],
   },
   {
     id: 'PROJ-006',
@@ -165,10 +241,22 @@ const MOCK_PROJECTS: Project[] = [
     targetEndDate: '2024-07-15',
     teamSize: 7,
     description: 'Custom analytics dashboards with Einstein Analytics',
-    ownerId: 'user-002', // Sarah (Lead)
+    ownerId: 'user-002',
     ownerName: 'Sarah Mitchell',
-    participantIds: ['user-001', 'user-003'], // Alex and Michael
+    participantIds: ['user-001', 'user-003'],
     participantNames: ['Alex Johnson', 'Michael Chen'],
+    phases: [
+      { id: 'PH1-006', name: 'Data Assessment', status: 'completed', startDate: '2024-03-15', endDate: '2024-04-05', progress: 100 },
+      { id: 'PH2-006', name: 'Dashboard Design', status: 'completed', startDate: '2024-04-06', endDate: '2024-04-25', progress: 100 },
+      { id: 'PH3-006', name: 'Einstein Implementation', status: 'in_progress', startDate: '2024-04-26', endDate: '2024-06-10', progress: 55 },
+      { id: 'PH4-006', name: 'User Training', status: 'not_started', startDate: '2024-06-11', endDate: '2024-07-01', progress: 0 },
+      { id: 'PH5-006', name: 'Go-Live & Support', status: 'not_started', startDate: '2024-07-02', endDate: '2024-07-15', progress: 0 },
+    ],
+    teams: [
+      { id: 'TM1-006', name: 'Analytics Team', role: 'Einstein Analytics', members: ['Sarah Mitchell', 'Alex Johnson', 'Diana Ross'], lead: 'Sarah Mitchell', currentPhase: 'PH3-006' },
+      { id: 'TM2-006', name: 'Data Team', role: 'Data Engineering', members: ['Michael Chen', 'Peter Chang'], lead: 'Michael Chen', currentPhase: 'PH3-006' },
+      { id: 'TM3-006', name: 'UX Team', role: 'Design', members: ['Laura Martinez', 'Steve Rogers'], lead: 'Laura Martinez', currentPhase: 'PH3-006' },
+    ],
   },
 ]
 

@@ -19,9 +19,9 @@ export default function DashboardPage() {
       <Header userRole={userRole} onRoleChange={setUserRole} />
       
       <main className="flex-1 p-6">
-        <div className="mx-auto max-w-7xl">
+        <div className="container mx-auto">
           <Tabs defaultValue="buddy" className="space-y-6">
-            <TabsList className={`grid w-full max-w-xl ${userRole === 'admin' ? 'grid-cols-3' : userRole === 'lead' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <TabsList className={`grid w-full ${userRole === 'admin' ? 'max-w-2xl grid-cols-3' : userRole === 'lead' ? 'max-w-lg grid-cols-2' : 'max-w-xs grid-cols-1'}`}>
               <TabsTrigger value="buddy" className="gap-2">
                 <MessageCircle className="size-4" />
                 Salesforce Buddy

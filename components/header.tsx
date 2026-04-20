@@ -39,30 +39,30 @@ export function Header({ userRole, onRoleChange }: HeaderProps) {
   const RoleIcon = config.icon
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+    <header className="sticky top-0 z-50 border-b border-border bg-primary shadow-sm">
+      <div className="container mx-auto flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-accent">
-              <span className="text-lg font-bold text-accent-foreground">AI</span>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-white/20">
+              <span className="text-lg font-bold text-white">AI</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">CSX AI Fabric</h1>
-              <p className="text-xs text-muted-foreground">Salesforce Buddy & Project Intelligence</p>
+              <h1 className="text-lg font-semibold text-white">CSX AI Fabric</h1>
+              <p className="text-xs text-white/70">Salesforce Buddy & Project Intelligence</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <Badge variant="outline" className="gap-1.5 px-3 py-1">
-            <div className="size-2 rounded-full bg-success animate-pulse" />
+          <Badge variant="secondary" className="gap-1.5 px-3 py-1 bg-white/20 text-white border-white/30">
+            <div className="size-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-xs">Safe Metadata Only</span>
           </Badge>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Role:</span>
+            <span className="text-sm text-white/80">Role:</span>
             <Select value={userRole} onValueChange={(v) => onRoleChange(v as UserRole)}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 bg-white/20 border-white/30 text-white hover:bg-white/30">
                 <SelectValue>
                   <div className="flex items-center gap-2">
                     <RoleIcon className="size-4" />

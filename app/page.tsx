@@ -18,6 +18,12 @@ export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const [selectedObject, setSelectedObject] = useState<string>('')
   const [selectedRecordId, setSelectedRecordId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState('home')
+
+  // Handle navigation from dashboard to specific tabs
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab)
+  }
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -44,12 +50,6 @@ export default function DashboardPage() {
   }
 
   const userRole = user.role
-  const [activeTab, setActiveTab] = useState('home')
-
-  // Handle navigation from dashboard to specific tabs
-  const handleNavigate = (tab: string) => {
-    setActiveTab(tab)
-  }
 
   return (
     <div className="flex min-h-screen flex-col">
